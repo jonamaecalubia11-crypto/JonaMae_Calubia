@@ -1,19 +1,85 @@
-from flask import Flask, jsonify, request
+from flask import Flask, jsonify, request, render_template_string
 
 app = Flask(__name__)
 
-# Home route
+# Home route with HTML design
 @app.route('/')
 def home():
-    return jsonify({
-        "message": "Welcome to my first API!",
-        "author": "Jona Mae Calubia",
-        "available_routes": [
-            "/student?grade=90",
-            "/hello?name=Jona",
-            "/api-info"
-        ]
-    })
+    html = """
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <title>Student Grade API</title>
+        <style>
+            body{
+                font-family: Arial;
+                background:#f4f6f9;
+                text-align:center;
+            }
+            h1{
+                color:#2c3e50;
+            }
+            table{
+                margin:auto;
+                border-collapse:collapse;
+                width:60%;
+                background:white;
+                box-shadow:0 0 10px rgba(0,0,0,0.1);
+            }
+            th,td{
+                padding:12px;
+                border:1px solid #ddd;
+            }
+            th{
+                background:#3498db;
+                color:white;
+            }
+            tr:hover{
+                background:#f1f1f1;
+            }
+            a{
+                text-decoration:none;
+                color:#3498db;
+                font-weight:bold;
+            }
+        </style>
+    </head>
+    <body>
+
+    <h1>Student Grade API</h1>
+    <p>Author: Jona Mae Calubia</p>
+
+    <table>
+        <tr>
+            <th>API Endpoint</th>
+            <th>Description</th>
+            <th>Example</th>
+        </tr>
+
+        <tr>
+            <td>/student</td>
+            <td>Check if student passed or failed</td>
+            <td><a href="/student?grade=90">Try Example</a></td>
+        </tr>
+
+        <tr>
+            <td>/hello</td>
+            <td>Greeting API</td>
+            <td><a href="/hello?name=Jona">Try Example</a></td>
+        </tr>
+
+        <tr>
+            <td>/api-info</td>
+            <td>API information</td>
+            <td><a href="/api-info">View Info</a></td>
+        </tr>
+
+    </table>
+
+    </body>
+    </html>
+    """
+    return render_template_string(html)
 
 
 # API information route
@@ -26,12 +92,11 @@ def api_info():
     })
 
 
-# Updated student route with pass/fail logic
+# Student route
 @app.route('/student')
 def get_student():
     grade = request.args.get('grade')
 
-    # Check if grade is provided
     if grade is None:
         return jsonify({
             "error": "Please provide a grade using ?grade=value"
