@@ -2,76 +2,75 @@ from flask import Flask, jsonify, request, render_template_string
 
 app = Flask(__name__)
 
-# Home route with HTML design
+# Home
 @app.route('/')
 def home():
-    html = """
+    return "Welcome to my first API!"
+
+# Student table view
+@app.route('/student')
+def get_student():
+
+    grade = int(request.args.get('grade', 0))
+
+    name = "Juan"
+    section = "Zechariah"
+
+    html = f"""
     <!DOCTYPE html>
     <html>
     <head>
-        <title>Student Grade API</title>
+        <title>Student Info</title>
         <style>
-            body{
+            body {{
                 font-family: Arial;
                 background:#f4f6f9;
                 text-align:center;
-            }
-            h1{
-                color:#2c3e50;
-            }
-            table{
+            }}
+
+            h2 {{
+                color:#333;
+            }}
+
+            table {{
                 margin:auto;
-                border-collapse:collapse;
-                width:60%;
+                border-collapse: collapse;
+                width: 50%;
                 background:white;
-                box-shadow:0 0 10px rgba(0,0,0,0.1);
-            }
-            th,td{
-                padding:12px;
-                border:1px solid #ddd;
-            }
-            th{
+                box-shadow:0px 0px 10px rgba(0,0,0,0.1);
+            }}
+
+            th {{
                 background:#3498db;
                 color:white;
-            }
-            tr:hover{
+                padding:10px;
+            }}
+
+            td {{
+                padding:10px;
+                border:1px solid #ddd;
+            }}
+
+            tr:hover {{
                 background:#f1f1f1;
-            }
-            a{
-                text-decoration:none;
-                color:#3498db;
-                font-weight:bold;
-            }
+            }}
         </style>
     </head>
     <body>
 
-    <h1>Student Grade API</h1>
-    <p>Author: Jona Mae Calubia</p>
+    <h2>Student Information</h2>
 
     <table>
         <tr>
-            <th>API Endpoint</th>
-            <th>Description</th>
-            <th>Example</th>
+            <th>Name</th>
+            <th>Section</th>
+            <th>Grade</th>
         </tr>
 
         <tr>
-            <td>/student</td>
-            <td>Check if student passed or failed</td>
-            <td><a href="/student?grade=90">Try Example</a></td>
-        </tr>
-
-        <tr>
-            <td>/hello</td>
-            <td>Greeting API</td>
-            <td><a href="/hello?name=Jona">Try Example</a></td>
-        </tr>
-
-        <tr>
-            <td>/api-info</td>
-            <td>API information</td>
-            <td><a href="/api-info">View Info</a></td>
+            <td>{name}</td>
+            <td>{section}</td>
+            <td>{grade}</td>
         </tr>
 
     </table>
@@ -79,53 +78,19 @@ def home():
     </body>
     </html>
     """
+
     return render_template_string(html)
 
 
-# API information route
-@app.route('/api-info')
-def api_info():
-    return jsonify({
-        "api_name": "Student Grade API",
-        "version": "1.0",
-        "description": "A simple API that checks student grade and greeting message."
-    })
-
-
-# Student route
-@app.route('/student')
-def get_student():
-    grade = request.args.get('grade')
-
-    if grade is None:
-        return jsonify({
-            "error": "Please provide a grade using ?grade=value"
-        }), 400
-
-    try:
-        grade = int(grade)
-    except ValueError:
-        return jsonify({
-            "error": "Grade must be a number"
-        }), 400
-
-    remarks = "Pass" if grade >= 75 else "Fail"
+# JSON version
+@app.route('/student-json')
+def student_json():
+    grade = int(request.args.get('grade', 0))
 
     return jsonify({
-        "name": "Juan",
-        "section": "Zechariah",
         "grade": grade,
-        "remarks": remarks
-    })
-
-
-# Hello route
-@app.route('/hello')
-def say_hello():
-    name = request.args.get('name', 'Student')
-
-    return jsonify({
-        "message": f"Hello, {name}! Welcome to my API."
+        "name": "Juan",
+        "section": "Zechariah"
     })
 
 
