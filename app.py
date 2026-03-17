@@ -1,17 +1,9 @@
 from flask import Flask, jsonify, request, render_template_string, redirect, url_for
+import sqlite3
 
 app = Flask(__name__)
-
-# ----------------------
-# In-memory "database"
-# ----------------------
-students = [
-    {"id": 1, "name": "Juan", "grade": 85, "section": "Zechariah"},
-    {"id": 2, "name": "Maria", "grade": 90, "section": "Zechariah"},
-    {"id": 3, "name": "Pedro", "grade": 70, "section": "Zion"}
-]
-
 PASS_MARK = 75
+DB_NAME = "students.db"
 
 # ----------------------
 # Shared CSS Template
@@ -29,28 +21,20 @@ BASE_CSS = """
     body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: var(--light); margin: 0; padding: 20px; color: var(--dark); }
     .container { max-width: 900px; margin: auto; background: white; padding: 30px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
     h2 { color: var(--dark); border-bottom: 2px solid var(--primary); padding-bottom: 10px; margin-bottom: 20px; }
-    
-    /* Summary Cards */
     .summary-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; margin-bottom: 30px; }
     .card { padding: 15px; border-radius: 8px; text-align: center; color: white; font-weight: bold; }
     .bg-avg { background: var(--primary); }
     .bg-pass { background: var(--success); }
     .bg-fail { background: var(--danger); }
-
-    /* Table Styling */
     table { width: 100%; border-collapse: collapse; margin-top: 10px; }
     th { background-color: #f8f9fa; text-align: left; padding: 12px; border-bottom: 2px solid #dee2e6; }
     td { padding: 12px; border-bottom: 1px solid #eee; }
     tr:hover { background-color: #fcfcfc; }
-
-    /* Buttons & Links */
     .btn { display: inline-block; padding: 8px 16px; border-radius: 5px; text-decoration: none; font-size: 14px; transition: 0.3s; border: none; cursor: pointer; }
     .btn-add { background: var(--primary); color: white; margin-bottom: 20px; }
     .btn-edit { color: var(--primary); font-weight: bold; }
     .btn-delete { color: var(--danger); font-weight: bold; }
     .btn:hover { opacity: 0.8; }
-
-    /* Form Styling */
     input { width: 100%; padding: 10px; margin: 8px 0 20px; border: 1px solid #ccc; border-radius: 5px; box-sizing: border-box; }
     .badge { padding: 4px 8px; border-radius: 4px; font-size: 12px; color: white; }
     .pass { background: var(--success); }
@@ -59,17 +43,36 @@ BASE_CSS = """
 """
 
 # ----------------------
-# Helper Functions
+# Database Functions
 # ----------------------
-def compute_summary():
-    if not students: return {"average": 0, "passed": 0, "failed": 0}
-    grades = [s["grade"] for s in students]
-    passed = len([g for g in grades if g >= PASS_MARK])
-    avg = round(sum(grades) / len(grades), 2)
-    return {"average": avg, "passed": passed, "failed": len(grades) - passed}
+def get_db_connection():
+    conn = sqlite3.connect(DB_NAME)
+    conn.row_factory = sqlite3.Row
+    return conn
 
-def get_next_id():
-    return max([s["id"] for s in students], default=0) + 1
+def init_db():
+    conn = get_db_connection()
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS students (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT NOT NULL,
+            grade INTEGER NOT NULL,
+            section TEXT NOT NULL
+        )
+    """)
+    conn.commit()
+    conn.close()
+
+def compute_summary():
+    conn = get_db_connection()
+    cur = conn.execute("SELECT grade FROM students")
+    grades = [row["grade"] for row in cur.fetchall()]
+    conn.close()
+    if not grades:
+        return {"average": 0, "passed": 0, "failed": 0}
+    passed = len([g for g in grades if g >= PASS_MARK])
+    avg = round(sum(grades)/len(grades), 2)
+    return {"average": avg, "passed": passed, "failed": len(grades)-passed}
 
 # ----------------------
 # Routes
@@ -80,7 +83,11 @@ def home():
 
 @app.route('/students')
 def list_students():
+    conn = get_db_connection()
+    students = conn.execute("SELECT * FROM students").fetchall()
+    conn.close()
     summary = compute_summary()
+    
     html = BASE_CSS + """
     <div class="container">
         <h2>🎓 Student Management System</h2>
@@ -147,25 +154,33 @@ def add_student_form():
 
 @app.route('/add_student', methods=['POST'])
 def add_student():
-    try:
-        name = request.form.get("name")
-        grade = int(request.form.get("grade"))
-        section = request.form.get("section")
-        students.append({"id": get_next_id(), "name": name, "grade": grade, "section": section})
-    except: pass
+    name = request.form.get("name")
+    grade = int(request.form.get("grade"))
+    section = request.form.get("section")
+    conn = get_db_connection()
+    conn.execute("INSERT INTO students (name, grade, section) VALUES (?, ?, ?)", (name, grade, section))
+    conn.commit()
+    conn.close()
     return redirect(url_for('list_students'))
 
 @app.route('/edit_student/<int:id>', methods=['GET', 'POST'])
 def edit_student(id):
-    student = next((s for s in students if s["id"] == id), None)
-    if not student: return "Student not found", 404
+    conn = get_db_connection()
+    student = conn.execute("SELECT * FROM students WHERE id=?", (id,)).fetchone()
+    if not student:
+        conn.close()
+        return "Student not found", 404
 
     if request.method == 'POST':
-        student["name"] = request.form["name"]
-        student["grade"] = int(request.form["grade"])
-        student["section"] = request.form["section"]
+        name = request.form["name"]
+        grade = int(request.form["grade"])
+        section = request.form["section"]
+        conn.execute("UPDATE students SET name=?, grade=?, section=? WHERE id=?", (name, grade, section, id))
+        conn.commit()
+        conn.close()
         return redirect(url_for('list_students'))
 
+    conn.close()
     html = BASE_CSS + """
     <div class="container" style="max-width: 500px;">
         <h2>Edit Student Details</h2>
@@ -185,9 +200,15 @@ def edit_student(id):
 
 @app.route('/delete_student/<int:id>')
 def delete_student(id):
-    global students
-    students = [s for s in students if s["id"] != id]
+    conn = get_db_connection()
+    conn.execute("DELETE FROM students WHERE id=?", (id,))
+    conn.commit()
+    conn.close()
     return redirect(url_for('list_students'))
 
+# ----------------------
+# Initialize DB & Run
+# ----------------------
 if __name__ == '__main__':
+    init_db()  # create table if not exists
     app.run(debug=True)
