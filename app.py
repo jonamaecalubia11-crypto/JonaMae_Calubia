@@ -8,62 +8,173 @@ DB_NAME = os.path.join(os.getcwd(), "students.db")
 PASS_MARK = 75
 
 # ----------------------
-# CSS
+# MODERN CSS
 # ----------------------
 BASE_CSS = """
 <style>
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600&display=swap');
+
 :root {
-    --primary: #4a90e2;
-    --secondary: #f39c12;
-    --danger: #e74c3c;
-    --success: #2ecc71;
-    --dark: #2c3e50;
-    --light: #f4f7f6;
+    --primary: #6c63ff;
+    --secondary: #00b894;
+    --danger: #ff4757;
+    --success: #2ed573;
+    --dark: #2f3542;
+    --light: #f1f2f6;
 }
+
+* {
+    box-sizing: border-box;
+}
+
 body {
-    font-family: 'Segoe UI', sans-serif;
-    background-color: var(--light);
-    margin:0; padding:20px;
+    font-family: 'Poppins', sans-serif;
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    margin: 0;
+    padding: 20px;
 }
+
 .container {
-    max-width:900px;
-    margin:auto;
-    background:white;
-    padding:30px;
-    border-radius:12px;
-    box-shadow:0 4px 15px rgba(0,0,0,0.1);
+    max-width: 1000px;
+    margin: auto;
+    background: #fff;
+    padding: 30px;
+    border-radius: 16px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.15);
+    animation: fadeIn 0.5s ease;
 }
+
+h2 {
+    margin-bottom: 20px;
+}
+
 .summary-grid {
-    display:grid;
-    grid-template-columns:repeat(3,1fr);
-    gap:15px;
-    margin-bottom:30px;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 15px;
+    margin-bottom: 25px;
 }
+
 .card {
-    padding:15px;
-    border-radius:8px;
-    text-align:center;
-    color:white;
-    font-weight:bold;
+    padding: 20px;
+    border-radius: 12px;
+    text-align: center;
+    color: white;
+    font-weight: 500;
+    transition: 0.3s;
 }
-.bg-avg { background: var(--primary); }
-.bg-pass { background: var(--success); }
-.bg-fail { background: var(--danger); }
+
+.card:hover {
+    transform: translateY(-5px);
+}
+
+.bg-avg { background: linear-gradient(135deg, #6c63ff, #4834d4); }
+.bg-pass { background: linear-gradient(135deg, #2ed573, #1eae60); }
+.bg-fail { background: linear-gradient(135deg, #ff4757, #c0392b); }
+
+.btn {
+    padding: 10px 18px;
+    border-radius: 8px;
+    text-decoration: none;
+    font-size: 14px;
+    transition: 0.3s;
+}
+
+.btn-add {
+    background: var(--primary);
+    color: white;
+    display: inline-block;
+    margin-bottom: 15px;
+}
+
+.btn-add:hover {
+    background: #574bdb;
+}
 
 table {
-    width:100%;
-    border-collapse:collapse;
+    width: 100%;
+    border-collapse: collapse;
+    border-radius: 12px;
+    overflow: hidden;
 }
-th, td {
-    padding:12px;
-    border-bottom:1px solid #eee;
-}
-.badge { padding:4px 8px; border-radius:4px; color:white; }
-.pass { background: var(--success); }
-.fail { background: var(--danger); }
 
-.btn { padding:8px 16px; border:none; cursor:pointer; }
-.btn-add { background: var(--primary); color:white; }
+thead {
+    background: var(--primary);
+    color: white;
+}
+
+th, td {
+    padding: 14px;
+    text-align: center;
+}
+
+tbody tr:nth-child(even) {
+    background: #f9f9f9;
+}
+
+tbody tr:hover {
+    background: #f1f2f6;
+}
+
+.badge {
+    padding: 5px 10px;
+    border-radius: 20px;
+    font-size: 12px;
+}
+
+.pass {
+    background: var(--success);
+    color: white;
+}
+
+.fail {
+    background: var(--danger);
+    color: white;
+}
+
+a {
+    text-decoration: none;
+    color: var(--primary);
+    font-weight: 500;
+}
+
+a:hover {
+    text-decoration: underline;
+}
+
+form {
+    display: grid;
+    gap: 15px;
+}
+
+input {
+    padding: 12px;
+    border-radius: 8px;
+    border: 1px solid #ddd;
+}
+
+input:focus {
+    outline: none;
+    border-color: var(--primary);
+}
+
+button {
+    padding: 10px;
+    border: none;
+    border-radius: 8px;
+    background: var(--primary);
+    color: white;
+    cursor: pointer;
+}
+
+button:hover {
+    background: #574bdb;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px);}
+    to { opacity: 1; transform: translateY(0);}
+}
 </style>
 """
 
@@ -104,8 +215,6 @@ def compute_summary():
 # ----------------------
 # ROUTES
 # ----------------------
-
-# ✅ FIX: HOME ROUTE
 @app.route('/')
 def home():
     return redirect(url_for('list_students'))
@@ -123,15 +232,21 @@ def list_students():
         <h2>🎓 Student Management System</h2>
 
         <div class="summary-grid">
-            <div class="card bg-avg">Avg: {{summary.average}}</div>
-            <div class="card bg-pass">Passed: {{summary.passed}}</div>
-            <div class="card bg-fail">Failed: {{summary.failed}}</div>
+            <div class="card bg-avg">Average<br><strong>{{summary.average}}</strong></div>
+            <div class="card bg-pass">Passed<br><strong>{{summary.passed}}</strong></div>
+            <div class="card bg-fail">Failed<br><strong>{{summary.failed}}</strong></div>
         </div>
 
         <a href="/add_student_form" class="btn btn-add">+ Add Student</a>
 
         <table>
-        <tr><th>ID</th><th>Name</th><th>Section</th><th>Grade</th><th>Status</th><th>Actions</th></tr>
+            <thead>
+                <tr>
+                    <th>ID</th><th>Name</th><th>Section</th>
+                    <th>Grade</th><th>Status</th><th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
         {% for s in students %}
         <tr>
             <td>{{s.id}}</td>
@@ -151,6 +266,7 @@ def list_students():
             </td>
         </tr>
         {% endfor %}
+            </tbody>
         </table>
     </div>
     """
@@ -165,7 +281,7 @@ def add_student_form():
             <input type="text" name="name" placeholder="Name" required>
             <input type="number" name="grade" placeholder="Grade" required>
             <input type="text" name="section" placeholder="Section" required>
-            <button class="btn btn-add">Save</button>
+            <button>Save</button>
         </form>
     </div>
     """
@@ -214,7 +330,7 @@ def edit_student(id):
             <input type="text" name="name" value="{{student.name}}" required>
             <input type="number" name="grade" value="{{student.grade}}" required>
             <input type="text" name="section" value="{{student.section}}" required>
-            <button class="btn btn-add">Update</button>
+            <button>Update</button>
         </form>
     </div>
     """
