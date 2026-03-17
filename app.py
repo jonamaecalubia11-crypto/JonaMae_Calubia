@@ -1,9 +1,9 @@
 from flask import Flask, request, redirect, url_for, render_template_string
 import sqlite3
+import os
 
 app = Flask(__name__)
 
-import os
 DB_NAME = os.path.join(os.getcwd(), "students.db")
 PASS_MARK = 75
 
@@ -104,6 +104,12 @@ def compute_summary():
 # ----------------------
 # ROUTES
 # ----------------------
+
+# ✅ FIX: HOME ROUTE
+@app.route('/')
+def home():
+    return redirect(url_for('list_students'))
+
 @app.route('/students')
 def list_students():
     conn = get_db_connection()
