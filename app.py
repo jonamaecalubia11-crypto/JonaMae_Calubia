@@ -1,4 +1,4 @@
-from flask import Flask, jsonify, request, render_template_string, redirect, url_for
+from flask import Flask, request, redirect, url_for, render_template_string
 import sqlite3
 
 app = Flask(__name__)
@@ -10,35 +10,35 @@ DB_NAME = "students.db"
 # ----------------------
 BASE_CSS = """
 <style>
-    :root {
-        --primary: #4a90e2;
-        --secondary: #f39c12;
-        --danger: #e74c3c;
-        --success: #2ecc71;
-        --dark: #2c3e50;
-        --light: #f4f7f6;
-    }
-    body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: var(--light); margin: 0; padding: 20px; color: var(--dark); }
-    .container { max-width: 900px; margin: auto; background: white; padding: 30px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
-    h2 { color: var(--dark); border-bottom: 2px solid var(--primary); padding-bottom: 10px; margin-bottom: 20px; }
-    .summary-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; margin-bottom: 30px; }
-    .card { padding: 15px; border-radius: 8px; text-align: center; color: white; font-weight: bold; }
-    .bg-avg { background: var(--primary); }
-    .bg-pass { background: var(--success); }
-    .bg-fail { background: var(--danger); }
-    table { width: 100%; border-collapse: collapse; margin-top: 10px; }
-    th { background-color: #f8f9fa; text-align: left; padding: 12px; border-bottom: 2px solid #dee2e6; }
-    td { padding: 12px; border-bottom: 1px solid #eee; }
-    tr:hover { background-color: #fcfcfc; }
-    .btn { display: inline-block; padding: 8px 16px; border-radius: 5px; text-decoration: none; font-size: 14px; transition: 0.3s; border: none; cursor: pointer; }
-    .btn-add { background: var(--primary); color: white; margin-bottom: 20px; }
-    .btn-edit { color: var(--primary); font-weight: bold; }
-    .btn-delete { color: var(--danger); font-weight: bold; }
-    .btn:hover { opacity: 0.8; }
-    input { width: 100%; padding: 10px; margin: 8px 0 20px; border: 1px solid #ccc; border-radius: 5px; box-sizing: border-box; }
-    .badge { padding: 4px 8px; border-radius: 4px; font-size: 12px; color: white; }
-    .pass { background: var(--success); }
-    .fail { background: var(--danger); }
+:root {
+    --primary: #4a90e2;
+    --secondary: #f39c12;
+    --danger: #e74c3c;
+    --success: #2ecc71;
+    --dark: #2c3e50;
+    --light: #f4f7f6;
+}
+body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: var(--light); margin:0; padding:20px; color: var(--dark); }
+.container { max-width: 900px; margin:auto; background:white; padding:30px; border-radius:12px; box-shadow:0 4px 15px rgba(0,0,0,0.1); }
+h2 { color: var(--dark); border-bottom:2px solid var(--primary); padding-bottom:10px; margin-bottom:20px; }
+.summary-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:15px; margin-bottom:30px; }
+.card { padding:15px; border-radius:8px; text-align:center; color:white; font-weight:bold; }
+.bg-avg { background: var(--primary); }
+.bg-pass { background: var(--success); }
+.bg-fail { background: var(--danger); }
+table { width:100%; border-collapse:collapse; margin-top:10px; }
+th { background-color:#f8f9fa; text-align:left; padding:12px; border-bottom:2px solid #dee2e6; }
+td { padding:12px; border-bottom:1px solid #eee; }
+tr:hover { background-color:#fcfcfc; }
+.btn { display:inline-block; padding:8px 16px; border-radius:5px; text-decoration:none; font-size:14px; transition:0.3s; border:none; cursor:pointer; }
+.btn-add { background: var(--primary); color:white; margin-bottom:20px; }
+.btn-edit { color: var(--primary); font-weight:bold; }
+.btn-delete { color: var(--danger); font-weight:bold; }
+.btn:hover { opacity:0.8; }
+input { width:100%; padding:10px; margin:8px 0 20px; border:1px solid #ccc; border-radius:5px; box-sizing:border-box; }
+.badge { padding:4px 8px; border-radius:4px; font-size:12px; color:white; }
+.pass { background: var(--success); }
+.fail { background: var(--danger); }
 </style>
 """
 
@@ -65,8 +65,7 @@ def init_db():
 
 def compute_summary():
     conn = get_db_connection()
-    cur = conn.execute("SELECT grade FROM students")
-    grades = [row["grade"] for row in cur.fetchall()]
+    grades = [row["grade"] for row in conn.execute("SELECT grade FROM students").fetchall()]
     conn.close()
     if not grades:
         return {"average": 0, "passed": 0, "failed": 0}
@@ -84,10 +83,9 @@ def home():
 @app.route('/students')
 def list_students():
     conn = get_db_connection()
-    students = conn.execute("SELECT * FROM students").fetchall()
+    students = [dict(row) for row in conn.execute("SELECT * FROM students").fetchall()]
     conn.close()
     summary = compute_summary()
-    
     html = BASE_CSS + """
     <div class="container">
         <h2>🎓 Student Management System</h2>
@@ -136,7 +134,7 @@ def list_students():
 @app.route('/add_student_form')
 def add_student_form():
     html = BASE_CSS + """
-    <div class="container" style="max-width: 500px;">
+    <div class="container" style="max-width:500px;">
         <h2>Add New Student</h2>
         <form action="/add_student" method="POST">
             <label>Full Name</label>
@@ -147,42 +145,50 @@ def add_student_form():
             <input type="text" name="section" placeholder="e.g. Zion" required>
             <button type="submit" class="btn btn-add" style="width:100%">Save Student</button>
         </form>
-        <center><a href="/students" style="color: #666; text-decoration: none;">← Back to List</a></center>
+        <center><a href="/students" style="color:#666;text-decoration:none;">← Back to List</a></center>
     </div>
     """
     return render_template_string(html)
 
 @app.route('/add_student', methods=['POST'])
 def add_student():
-    name = request.form.get("name")
-    grade = int(request.form.get("grade"))
-    section = request.form.get("section")
-    conn = get_db_connection()
-    conn.execute("INSERT INTO students (name, grade, section) VALUES (?, ?, ?)", (name, grade, section))
-    conn.commit()
-    conn.close()
+    try:
+        name = request.form.get("name")
+        grade = int(request.form.get("grade"))
+        section = request.form.get("section")
+        conn = get_db_connection()
+        conn.execute("INSERT INTO students (name, grade, section) VALUES (?, ?, ?)", (name, grade, section))
+        conn.commit()
+        conn.close()
+    except Exception as e:
+        return f"Error adding student: {e}"
     return redirect(url_for('list_students'))
 
 @app.route('/edit_student/<int:id>', methods=['GET', 'POST'])
 def edit_student(id):
     conn = get_db_connection()
-    student = conn.execute("SELECT * FROM students WHERE id=?", (id,)).fetchone()
-    if not student:
+    student_row = conn.execute("SELECT * FROM students WHERE id=?", (id,)).fetchone()
+    if not student_row:
         conn.close()
         return "Student not found", 404
+    student = dict(student_row)
 
     if request.method == 'POST':
-        name = request.form["name"]
-        grade = int(request.form["grade"])
-        section = request.form["section"]
-        conn.execute("UPDATE students SET name=?, grade=?, section=? WHERE id=?", (name, grade, section, id))
-        conn.commit()
+        try:
+            name = request.form["name"]
+            grade = int(request.form["grade"])
+            section = request.form["section"]
+            conn.execute("UPDATE students SET name=?, grade=?, section=? WHERE id=?", (name, grade, section, id))
+            conn.commit()
+        except Exception as e:
+            conn.close()
+            return f"Error updating student: {e}"
         conn.close()
         return redirect(url_for('list_students'))
 
     conn.close()
     html = BASE_CSS + """
-    <div class="container" style="max-width: 500px;">
+    <div class="container" style="max-width:500px;">
         <h2>Edit Student Details</h2>
         <form method="POST">
             <label>Name</label>
@@ -191,24 +197,27 @@ def edit_student(id):
             <input type="number" name="grade" min="0" max="100" value="{{student.grade}}" required>
             <label>Section</label>
             <input type="text" name="section" value="{{student.section}}" required>
-            <button type="submit" class="btn btn-add" style="width:100%; background: var(--secondary)">Update Info</button>
+            <button type="submit" class="btn btn-add" style="width:100%; background:var(--secondary)">Update Info</button>
         </form>
-        <center><a href="/students" style="color: #666; text-decoration: none;">Cancel</a></center>
+        <center><a href="/students" style="color:#666;text-decoration:none;">Cancel</a></center>
     </div>
     """
     return render_template_string(html, student=student)
 
 @app.route('/delete_student/<int:id>')
 def delete_student(id):
-    conn = get_db_connection()
-    conn.execute("DELETE FROM students WHERE id=?", (id,))
-    conn.commit()
-    conn.close()
+    try:
+        conn = get_db_connection()
+        conn.execute("DELETE FROM students WHERE id=?", (id,))
+        conn.commit()
+        conn.close()
+    except Exception as e:
+        return f"Error deleting student: {e}"
     return redirect(url_for('list_students'))
 
 # ----------------------
 # Initialize DB & Run
 # ----------------------
 if __name__ == '__main__':
-    init_db()  # create table if not exists
+    init_db()
     app.run(debug=True)
